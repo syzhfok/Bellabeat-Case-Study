@@ -5,8 +5,8 @@
 You are a junior data analyst working on the marketing analyst team at Bellabeat, a high-tech manufacturer of health-focused products for women. Bellabeat is a successful small company, but they have the potential to become a larger player in the
 global smart device market. Urška Sršen, cofounder and Chief Creative Officer of Bellabeat, believes that analyzing smart device fitness data could help unlock new growth opportunities for the company. You have been asked to focus on one of Bellabeat’s products and analyze smart device data to gain insight into how consumers are using their smart devices. The insights you discover will then help guide marketing strategy for the company. You will present your analysis to the Bellabeat executive team along with your high-level recommendations for Bellabeat’s marketing strategy.
 
-** Primary stakeholders:** Bellabeat executive team (Urška Sršen, Sando Mur)
-** Secondary stakeholders:** Bellabeat marketing analytics team
+**Primary stakeholders:** Bellabeat executive team (Urška Sršen, Sando Mur)
+**Secondary stakeholders:** Bellabeat marketing analytics team
 
 ## Data Source
 FitBit Fitness Tracker Data (CCO: Public Domain, dataset made available through Mobius).
@@ -198,6 +198,7 @@ SELECT
   DAY) +1 AS number_of_days
 FROM `tenacious-text-379818.Capstone.daily_merged_01`
 ```
+
 
 As it appeared that the description didn't align with the data, I proceeded to verify whether there were genuinely 30 distinct IDs as indicated in the dataset's description for the supposed 30 users. Turns out there were actually 33 distinct Ids. And so now instead of 30 users across a 2 month period, I was really dealing with 33 users across a one month period. Then I wanted to how many groups of users were there based on the frequency of their tracked data. 
 ```markdown
