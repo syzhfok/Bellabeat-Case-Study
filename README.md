@@ -1,5 +1,5 @@
 # Bellabeat Case Study
-##### SQL and Data Viz
+### SQL and Data Viz
 
 ## Scenario
 You are a junior data analyst working on the marketing analyst team at Bellabeat, a high-tech manufacturer of health-focused products for women. Bellabeat is a successful small company, but they have the potential to become a larger player in the
@@ -25,26 +25,30 @@ Prior to using BigQuery to explore the data, I loaded all 18 csv files into Exce
 
 Once all 18 csv files were imported into BigQuery, I first checked to make sure the date formatting stayed the same across the 18 tables. 
 
+### Setting Things Up
 ```markdown
 -- timestamp/date formatting stays the same across tables
 -- Setting variables for regular expression based analyses
-DECLARE TIMESTAMP_REGEX STRING DEFAULT r'^\d{4}-\d{1,2}-\d{1,2}[T]\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})? *(([+-]\d{1,2}(:\d{1,2})?)|Z|UTC)?$';
-DECLARE DATE_REGEX STRING DEFAULT r'^\d{4}-(?:[1-9]|0[1-9]|1[012])-(?:[1-9]|0[1-9]|[12][0-9]|3[01])$';
-DECLARE TIME_REGEX STRING DEFAULT r'^\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})?$';
+DECLARE TIMESTAMP_REGEX STRING DEFAULT 
+  r'^\d{4}-\d{1,2}-\d{1,2}[T]\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})? *(([+-]\d{1,2}(:\d{1,2})?)|Z|UTC)?$';
+DECLARE DATE_REGEX STRING DEFAULT 
+  r'^\d{4}-(?:[1-9]|0[1-9]|1[012])-(?:[1-9]|0[1-9]|[12][0-9]|3[01])$';
+DECLARE TIME_REGEX STRING DEFAULT 
+  r'^\d{1,2}:\d{1,2}:\d{1,2}(\.\d{1,6})?$';
 ```
-
+<br>
 Then I wanted set the different times of day for later data exploration
+
 ```markdown
 -- Setting variables for time of day/ day of week analyses
 DECLARE MORNING_START, MORNING_END, AFTERNOON_END, EVENING_END INT64;
-
 -- Set the times for the times of the day
 SET MORNING_START = 6;
 SET MORNING_END = 12;
 SET AFTERNOON_END = 18;
 SET EVENING_END = 21;
 ```
-
+### 
 I wanted to find which columns existed in more than one table in case, I wanted to JOIN any tables together for analysis later. BigQuery does not use primary and foreign keys (relational databases) but I wanted to find the "primary key". "Id" seemed like a the best fit. 
 ```markdown
 -- Finding columns that exist in multiple tables
@@ -56,8 +60,9 @@ WHERE table_catalog = 'tenacious-text-379818'
   AND table_name != 'daily_activity'
   AND column_name = 'Id';
 ```
-
+<br>
 Then I checked to see if the column 'Id' existed in all tables in the data set
+
 ```markdown
 -- Checking if 'Id' exists in all tables in data set
 SELECT 
@@ -71,8 +76,9 @@ FROM `tenacious-text-379818.Capstone.INFORMATION_SCHEMA.COLUMNS`
 GROUP BY 1
 ORDER BY 1 ASC;
 ```
-
+<br>
 The data set was tracking users across a certain time period and so I checked if each table in the data set had a date or time column. I did this by see which tables did not have such a column.
+
 ```markdown
 -- Checking that every column has date/time type. The result should be: empty if the columns were detected properly
 SELECT table_name,
@@ -85,8 +91,9 @@ WHERE data_type IN ("TIMESTAMP","DATETIME","DATE")
 GROUP BY 1
 HAVING has_time_info = 1;
 ```
-
+<br>
 For later reference, I wanted to find out the name of the date/time datatype columns in each table as this could affect the the data when comparing two different tables in the data set. For example, comparing a table that tracked by the minute or hour versus a table that tracked data by the day.
+
 ```markdown
 -- Seeing the name of the time/date datatype column in each table
 SELECT
@@ -101,7 +108,9 @@ FROM `tenacious-text-379818.Capstone.INFORMATION_SCHEMA.COLUMNS`
 WHERE REGEXP_CONTAINS(LOWER(table_name),"day|daily");
 ```
 
+<br>
 I wanted to look at the data that was tracked daily and so sought to find day/daily columns and see the count of the occurences of such tables for each unique combination of column name and data type.
+
 ```markdown
 -- Finding the frequency of occurence of the columns in the day|daily tables
 SELECT 
@@ -112,8 +121,9 @@ FROM `tenacious-text-379818.Capstone.INFORMATION_SCHEMA.COLUMNS`
 WHERE REGEXP_CONTAINS(LOWER(table_name), r'day|daily')
 GROUP BY 1, 2;
 ```
-
+<br>
 Then to go a step further and filter the columns that contain day/daily that also occur in at least 2 different tables.
+
 ```markdown
 -- Filtering columns that contain 'day|daily' that also occur in at least 2 different tables
 SELECT
@@ -131,8 +141,9 @@ WHERE REGEXP_CONTAINS(LOWER(table_name), r'day|daily')
     )
 ORDER BY 1;
 ```
-
+### Merging the Data Across Different Tables for Analysis
 Now I was ready to JOIN the tables with day/daily columns to create a table for further analysis. Since I wanted to create one table for analysis, I had to join together different tables together. I named the combined table: 'daily_merged_01'.
+
 ```markdown
 -- Joined (LEFT JOIN) the filtered tables: daily_activity, daily_calories, daily_intensities, daily_steps, daily_sleep
 SELECT
@@ -185,8 +196,9 @@ LEFT JOIN `tenacious-text-379818.Capstone.daily_sleep` S1
     A.Id = S1.Id
     AND DATE(A.ActivityDate) = DATE(S1.SleepDay);
 ```
-
+### Finding the Real Parameters of the Data Set
 The data set was described to be data tracked over a one month period but I wanted to double check. I found out that the data was tracked over 31 days from April 12 to May 12, 2016. 
+
 ```markdown
 -- Finding start (2016.04.12) and end date (2016.05.12), to find the duration over which the data was tracked
 SELECT
@@ -198,7 +210,7 @@ SELECT
   DAY) +1 AS number_of_days
 FROM `tenacious-text-379818.Capstone.daily_merged_01`
 ```
-
+<br>
 
 As it appeared that the description didn't align with the data, I proceeded to verify whether there were genuinely 30 distinct IDs as indicated in the dataset's description for the supposed 30 users. Turns out there were actually 33 distinct Ids. And so now instead of 30 users across a 2 month period, I was really dealing with 33 users across a one month period. Then I wanted to how many groups of users were there based on the frequency of their tracked data. 
 ```markdown
@@ -219,8 +231,11 @@ FROM user_counts
 GROUP BY CountDays
 ORDER BY CountDays DESC;
 ```
+<img src="Graphs & Charts/Number of users per days of tracked data.png" alt="Users by Frequency of Tracked Data" />
 
-I aimed to categorize the 33 distinct users based on the frequency of their recorded data. Given that Fitbit is a wearable device that captures data, I considered that the frequency of days with entered data could serve as an indicator of how frequently they utilized their Fitbit.
+### Grouping the Users
+I aimed to categorize the 33 distinct users based on the frequency of their recorded data. Given that Fitbit is a wearable device that captures data, I considered that the frequency of days with entered data could serve as an indicator of how frequently they utilized their Fitbit. I decided to put the users into 3 groups, those who had data every single day of the 31 days, those who only missed up 1-3 days, and those that missed 4 days or more. 
+
 ```markdown
 -- Grouped the users by the number of days that they had a data entry
 SELECT
@@ -240,7 +255,9 @@ FROM
 GROUP BY Category
 ORDER BY Category
 ```
-![image](Graphs & Charts/Number of users per days of tracked data.png)
+
+### Looking at user step count (TotalSTeps) entries
+I wanted to look at overall step count as the main source of activity since walking is something we all do. I also felt that step count provides a general picture of a user's overall activity levels. While not perfect since there are exercises that won't contribute to step count but yet are incredibly beneficial such as lifting weights or swimming. While there are also other actitivies that a high level of step count and yet are not as time efficient as an exercise as other forms of exercise such as golf compared to HIIT(high-intensity interval training). 
 
 ```markdown
 -- How many of those that have entries for the entire 31 days also have entries for sleep (missing 5)
@@ -265,7 +282,7 @@ WITH user_counts AS (
   users_without_entry AS (
     SELECT
     uc.Id
-    FROM users_with_countdays uc
+    FROM users_with_countdays uc 
     LEFT JOIN `tenacious-text-379818.Capstone.daily_sleep` ds
     ON uc.Id = ds.Id
     WHERE ds.Id IS NULL
@@ -277,22 +294,8 @@ FROM users_without_entry uw
 GROUP BY uw.Id;
 ```
 
-
-```markdown
--- Grouped the users in 3 groups based upon they have 100%, at least 90%, and less than 90% of the days of daily data
-CREATE TABLE Capstone.group3_less27days AS
-SELECT *
-FROM `tenacious-text-379818.Capstone.daily_merged_01`
-WHERE Id IN (
-  SELECT Id
-  FROM (
-    SELECT Id, COUNT(DISTINCT DATE(ActivityDate)) AS CountDays
-    FROM `tenacious-text-379818.Capstone.daily_merged_01`
-    GROUP BY Id
-    HAVING CountDays <= 27
-    ) AS Group2
-   )
-```
+<br>
+I considered using "Sleep" table data to look at any correlation between sleep and any of the activity data. However, there were quite a number of users who wore their Fitbit everyday and yet did not have sleep data. This makes sense when considering health wearables generally needed to be charged at least once a day. In the group of users that had data for everyday of the 31 day period, 16 had had data for sleep and 5 did not. Since number of users for this dataset is low, 5 users, without sleep data, made up almost 1/3 of the group. Overall, for the 33 users in the data set, around 70% (72.73%) had data for sleep and almost 30% (27.27%) did not. So I wanted to break down the users in the Sleep table to see which of the participation of the three different groups in tracking sleep data.
 
 ```markdown
 -- Looking at the relationship between the incomplete daily_sleep table and from which of the 3 groups the Ids are coming from
@@ -311,8 +314,12 @@ LEFT JOIN tenacious-text-379818.Capstone.group3_less27days g3 ON ds.Id = g3.Id
 GROUP BY ds.Id, GroupCategory
 ORDER BY GroupCategory;
 ```
+<br>
+<img src="Graphs & Charts/Users broken into 3 groups based on data frequency.png" alt="User Groups based on data frequency" />
 
+<br>
 
+Looking at how many of users in the 3 groups have sleep data. 
 ```markdown
 -- Aggregating the distinct Ids in the 3 groups  and counting how Ids have daily_sleep entry and how many don't
 SELECT
@@ -339,7 +346,13 @@ FROM Capstone.group3_less27days gs3
 LEFT JOIN Capstone.daily_sleep ds 
   ON gs3.id = ds.id;
 ```
+<br>
+<img src= "Graphs & Charts/Users who also have sleep data.png">
+<br>
+<br>
 
+### Relationship between average daily calories and daily steps
+For each other 3 groups, I wanted to see if there any trends amongst the 3 groups that were different from the others when it came to the relationship between daily calories and daily steps. Turns out there was not. This could be due to having a wearable tech tracking user activity encourages the user to be more fit. 
 
 ```markdown
 -- Average calories and steps for the 3 groups
@@ -362,6 +375,15 @@ SELECT
 FROM Capstone.group3_less27days;
 ```
 
+### Analyzing the 100% Completion Group: Exploring the Connection Between Daily Steps and Activity Levels
+Wanted to see the average steps for group 1, wore Fitbit for the entire month, for each day of the week. 
+<br>
+
+According to a 2001 CDC, Center for Disease Control, [article](https://www.cdc.gov/media/releases/2020/p0324-daily-step-count.html), NIA (National Institute for Aging) and NCI (National Cancer Institute) found in a study that people who took at least 8,000 steps were at a 51% chance lower risk, while those that took at least 12,000 steps per day were at a 65% chance lower risk from all-cause mortality compared with those who only took 4,000 steps4. 
+<br>
+<br>
+So I thought that looking at step count would be a great indicator of health even though there is not a direct causation bewteen steps and reduced risk from all-cause mortality.
+
 
 ```markdown
 -- Average step count for group1 throughout the week by day
@@ -372,6 +394,12 @@ FROM `tenacious-text-379818.Capstone.group1_31days`
 GROUP BY DayOfWeek
 ORDER BY DayOfWeek;
 ```
+<br>
+<img src = "Graphs & Charts/Daily average steps for group 1 users.png">
+
+<br>
+<br>
+Now I wanted to look at the relationship bewteen calories and total steps for group 1 on a daily basis. Looking 
 
 ```markdown
 -- Looking at calories and total steps
@@ -382,7 +410,13 @@ SELECT
 FROM `tenacious-text-379818.Capstone.group1_31days`
 GROUP BY Id
 ```
+<br>
 
+There was a correlation observed, but not a causal relationship, between the daily number of steps taken by users and their daily average calorie burn. This may be attributable to users occasionally removing their FitBit during exercise. Although the Fitbit is suitable for most situations, there are activities, like swimming, or situations where step counting is not feasible, such as cycling. This illustrates that while step counts can provide insight into a user's daily activity, they do not provide a complete picture.
+<img src = "Graphs & Charts/Average Calories and Steps for Group 1 Users.png">
+
+<br>
+I observed that most users in this group consistently exceeded 8,000 daily steps, indicating prolonged Fitbit usage throughout the day. To investigate this further, I analyzed hourly step counts across the week, calculating average step counts for each hour throughout the day. 
 
 ```markdown
 -- Hourly average step count by day for group 1
@@ -411,3 +445,5 @@ FROM hourly_avg
 GROUP BY HourOfDay
 ORDER BY HourOfDay
 ```
+<br>
+<img src = "Graphs & Charts/Average Step Count by hour and day for Group 1.png">
